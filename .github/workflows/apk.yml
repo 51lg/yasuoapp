@@ -1,7 +1,7 @@
-name: 打包全自动解压器 APK
+name: 打包全自动解压器
 
 on:
-  workflow_dispatch: # 支持在 GitHub Actions 页面手动触发
+  workflow_dispatch:
 
 env:
   PYTHONUTF8: "1"
@@ -15,7 +15,7 @@ jobs:
       - name: 📥 检出代码
         uses: actions/checkout@v4
 
-      - name: ☕ 配置 Java 环境 (Flet 编译 Android 必备)
+      - name: ☕ 配置 Java 环境
         uses: actions/setup-java@v4
         with:
           distribution: zulu
@@ -31,17 +31,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 📦 安装依赖库
+      - name: 📦 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # 显式安装 cffi 和 pycryptodomex 以增强兼容性
+          pip install flet pyzipper pycryptodomex cffi
 
-      - name: 📝 转换入口文件名
-        # 将你的文件名复制为 Flet 默认识别的 main.py
+      - name: 📝 准备入口文件
         run: |
           cp 手机叔叔解压.py main.py
 
-      - name: 🚀 编译 APK (含安卓 11+ 存储权限)
+      - name: 🚀 编译 APK
         run: |
           flet build apk . \
             --project "AutoExtractor" \
@@ -53,9 +53,9 @@ jobs:
               android.permission.MANAGE_EXTERNAL_STORAGE=True \
             --yes --verbose
 
-      - name: 📤 上传安装包
+      - name: 📤 上传生成的 APK
         uses: actions/upload-artifact@v4
         with:
-          name: AutoExtractor-Android-Build
+          name: AutoExtractor-Android
           path: build/apk/
           if-no-files-found: error
