@@ -2,11 +2,11 @@ import asyncio
 import os
 import re
 import shutil
+import zipfile
 from pathlib import Path
 
 import flet as ft
 import flet_permission_handler as fph
-import pyzipper
 
 
 APP_TITLE = "全自动解压器（权限弹窗版）"
@@ -315,31 +315,40 @@ async def main(page: ft.Page):
         page.update()
 
     def extract_one_archive(file_path: str, password: str, output_dir: str) -> int:
-        with pyzipper.AESZipFile(file_path, "r") as zf:
-            zf.setpassword(password.encode("utf-8"))
-            extracted = 0
-            for info in zf.infolist():
-                if info.is_dir():
-                    continue
+        try:
+            with zipfile.ZipFile(file_path, "r") as zf:
+                extracted = 0
+                for info in zf.infolist():
+                    if info.is_dir():
+                        continue
 
-                dest_path = os.path.join(output_dir, info.filename)
-                os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                    dest_path = os.path.join(output_dir, info.filename)
+                    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
-                base, ext = os.path.splitext(dest_path)
-                final_dest = dest_path
-                index = 1
-                while os.path.exists(final_dest):
-                    final_dest = f"{base}_{index}{ext}"
-                    index += 1
+                    base, ext = os.path.splitext(dest_path)
+                    final_dest = dest_path
+                    index = 1
+                    while os.path.exists(final_dest):
+                        final_dest = f"{base}_{index}{ext}"
+                        index += 1
 
-                parent_dir = os.path.dirname(final_dest)
-                if parent_dir:
-                    os.makedirs(parent_dir, exist_ok=True)
+                    parent_dir = os.path.dirname(final_dest)
+                    if parent_dir:
+                        os.makedirs(parent_dir, exist_ok=True)
 
-                with zf.open(info.filename, "r") as source, open(final_dest, "wb") as target:
-                    shutil.copyfileobj(source, target)
-                extracted += 1
-            return extracted
+                    with zf.open(info, "r", pwd=password.encode("utf-8")) as source, open(final_dest, "wb") as target:
+                        shutil.copyfileobj(source, target)
+                    extracted += 1
+                return extracted
+        except zipfile.BadZipFile as exc:
+            raise ValueError("文件不是有效的 ZIP 压缩包，或扩展名伪装成 zip/xls/xxbl") from exc
+        except RuntimeError as exc:
+            msg = str(exc).lower()
+            if "password" in msg or "encrypted" in msg:
+                raise ValueError("当前安卓版仅支持标准 ZIP 解压，不支持 AES 加密压缩包") from exc
+            raise
+        except NotImplementedError as exc:
+            raise ValueError("当前压缩算法暂不受支持，可能是 AES 加密压缩包") from exc
 
     def parse_password(filename: str) -> str:
         match = re.search(r"(xxbl\d{8})", filename, re.IGNORECASE)
@@ -417,8 +426,6 @@ async def main(page: ft.Page):
                 successful_paths.add(file_path)
             except Exception as ex:
                 msg = str(ex)
-                if "Bad password" in msg:
-                    msg = "密码解析成功，但解压失败"
                 errors.append(f"{filename}: {msg}")
 
         progress_bar.value = 1
