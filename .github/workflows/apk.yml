@@ -1,0 +1,43 @@
+name: 打包安卓APK
+
+on:
+  workflow_dispatch: # 允许在 GitHub 网页上手动点击运行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: ☕ 配置 Java 环境
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 🐦 配置 Flutter 环境
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: 🐍 配置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🚀 编译 APK
+        run: |
+          flet build apk 手机叔叔解压.py --project "AutoExtractor" --org "com.shushu.extractor" --app-name "全自动解压" --app-short-name "解压器"
+
+      - name: 📤 上传生成的 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 全自动解压器-Android
+          path: build/apk/**/*.apk
