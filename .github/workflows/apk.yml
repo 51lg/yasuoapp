@@ -3,6 +3,10 @@ name: 打包安卓APK
 on:
   workflow_dispatch:
 
+env:
+  PYTHONUTF8: "1"
+  FLET_CLI_NO_RICH_OUTPUT: "1"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,31 +18,39 @@ jobs:
       - name: ☕ 配置 Java 环境
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          distribution: zulu
+          java-version: "17"
 
       - name: 🐦 配置 Flutter 环境
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: stable
 
       - name: 🐍 配置 Python 环境
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.12"
 
       - name: 📦 安装依赖
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: 📝 准备入口文件
+        run: |
+          cp 手机叔叔解压.py main.py
+
       - name: 🚀 编译 APK
         run: |
-          mv 手机叔叔解压.py main.py
-          flet build apk . --project "AutoExtractor" --org "com.shushu.extractor"
+          flet build apk . \
+            --project "AutoExtractor" \
+            --org "com.shushu.extractor" \
+            --android-permissions android.permission.READ_EXTERNAL_STORAGE=True android.permission.WRITE_EXTERNAL_STORAGE=True \
+            --yes --verbose
 
       - name: 📤 上传生成的 APK
         uses: actions/upload-artifact@v4
         with:
           name: 全自动解压器-Android
-          path: build/apk/**/*.apk
+          path: build/apk/
+          if-no-files-found: error
