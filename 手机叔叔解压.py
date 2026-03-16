@@ -3,9 +3,9 @@ import json
 import os
 import re
 import shutil
+import zipfile
 
 import flet as ft
-import zipfile
 
 
 async def main(page: ft.Page):
@@ -686,8 +686,7 @@ async def main(page: ft.Page):
         os.makedirs(output_dir, exist_ok=True)
 
         def extract_logic(file_path: str, pwd: str) -> int:
-            with pyzipper.AESZipFile(file_path, "r") as zf:
-                zf.setpassword(pwd.encode("utf-8"))
+            with zipfile.ZipFile(file_path, "r") as zf:
                 extract_count = 0
 
                 for file_info in zf.infolist():
@@ -706,7 +705,7 @@ async def main(page: ft.Page):
                         final_dest = f"{base}_{counter}{ext}"
                         counter += 1
 
-                    with zf.open(file_info.filename, "r") as source, open(final_dest, "wb") as target:
+                    with zf.open(file_info, pwd=pwd.encode("utf-8")) as source, open(final_dest, "wb") as target:
                         shutil.copyfileobj(source, target)
 
                     extract_count += 1
@@ -742,6 +741,7 @@ async def main(page: ft.Page):
                     or "password" in lower_msg
                     or "bad crc-32" in lower_msg
                     or "decrypt" in lower_msg
+                    or "encrypted" in lower_msg
                 )
 
                 if raw_msg == "未找到密码":
@@ -773,7 +773,6 @@ async def main(page: ft.Page):
         else:
             set_status(f"全部成功，共解压 {total_extracted_items} 个文件", SUCCESS)
 
-        # 把最近几条错误信息显示到控制台，方便你测试
         if error_messages:
             print("\n====== 解压失败详情 ======")
             for msg in error_messages:
