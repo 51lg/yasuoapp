@@ -97,13 +97,47 @@ async def main(page: ft.Page):
     current_browse_path = load_last_browse_path(get_download_dir())
 
     # =========================================================
-    # 5. 安全刷新
+    # 5. 安全刷新 & 安卓权限管理核心 (关键修复)
     # =========================================================
     def safe_update():
         try:
             page.update()
         except Exception:
             pass
+
+    # 引入 Flet 官方权限管理器
+    ph = ft.PermissionHandler()
+    page.overlay.append(ph)
+
+    def request_android_permissions(e=None):
+        try:
+            # 向系统申请最高级的【所有文件管理权限】（为了读取隐藏的 xls）
+            ph.request_permission(ft.PermissionType.MANAGE_EXTERNAL_STORAGE)
+        except Exception:
+            pass
+        try:
+            # 兼容申请普通存储权限
+            ph.request_permission(ft.PermissionType.STORAGE)
+        except Exception:
+            pass
+
+    permission_btn = ft.Container(
+        width=380,
+        bgcolor=DANGER,
+        border_radius=18,
+        padding=14,
+        ink=True,
+        on_click=request_android_permissions,
+        visible=page.platform == ft.PagePlatform.ANDROID, # 仅在安卓端显示
+        content=ft.Row(
+            [
+                ft.Icon(ft.Icons.SHIELD_ROUNDED, color=ft.Colors.WHITE, size=20),
+                ft.Text("安卓必点：授予【所有文件访问】权限", color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=8,
+        )
+    )
 
     # =========================================================
     # 6. 顶部信息区
@@ -125,7 +159,7 @@ async def main(page: ft.Page):
     )
 
     app_subtitle = ft.Text(
-        "扫描 Download / QQfile_recv 并自动提取密码解压",
+        "扫描 Download / QQfile_recv 并提取密码解压",
         size=12,
         color=TEXT_SOFT,
     )
@@ -549,7 +583,7 @@ async def main(page: ft.Page):
             explorer_list_view.controls.append(
                 ft.Container(
                     padding=12,
-                    content=ft.Text("无法访问这个目录", color=DANGER),
+                    content=ft.Text("无法访问这个目录（可能需要授予权限）", color=DANGER),
                 )
             )
 
@@ -606,7 +640,6 @@ async def main(page: ft.Page):
         update_extract_btn_state()
 
     async def scan_files(e=None):
-        """同时深度扫描 Download + QQfile_recv + Android/data 下的 QQfile_recv"""
         nonlocal last_scan_count
         file_list_view.controls.clear()
         selected_file_paths.clear()
@@ -670,7 +703,7 @@ async def main(page: ft.Page):
                 ft.Container(
                     padding=12,
                     content=ft.Text(
-                        "没有找到可解压文件\n已扫描 Download 和 QQfile_recv",
+                        "没有找到可解压文件\n请点击上方红色按钮授予全盘扫描权限\n或检查文件是否已保存到 Download 文件夹",
                         color=TEXT_SOFT,
                         text_align=ft.TextAlign.CENTER,
                     ),
@@ -695,7 +728,7 @@ async def main(page: ft.Page):
                 file_list_view.controls.append(card)
 
             set_status(
-                f"扫描完成，已在 Download / QQfile_recv 中找到 {len(found_files)} 个文件",
+                f"扫描完成，已找到 {len(found_files)} 个伪装包文件",
                 SUCCESS,
             )
 
@@ -819,12 +852,6 @@ async def main(page: ft.Page):
                 set_status(f"完成，但有 {total_error_count} 个文件解压失败", WARNING)
         else:
             set_status(f"全部成功，共解压 {total_extracted_items} 个文件", SUCCESS)
-
-        if error_messages:
-            print("\n====== 解压失败详情 ======")
-            for msg in error_messages:
-                print(msg)
-            print("=========================\n")
 
         safe_update()
 
@@ -1069,6 +1096,7 @@ async def main(page: ft.Page):
     # =========================================================
     page.add(
         header_section,
+        permission_btn,  # 这是我刚刚为你加进去的！安卓端必点的红色权限按钮
         stats_section,
         status_section,
         tab_section,
