@@ -1,2 +1,2 @@
-flet==0.82.2
-flet-permission-handler==0.82.2
+flet
+pyzipper
