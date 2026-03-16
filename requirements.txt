@@ -1,4 +1,3 @@
-flet
-pyzipper
-pycryptodomex
-cffi
+flet==0.82.2
+flet-permission-handler==0.82.2
+pyzipper>=0.3.6
