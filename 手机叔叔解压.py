@@ -5,7 +5,7 @@ import re
 import shutil
 
 import flet as ft
-import pyzipper
+import zipfile
 
 
 async def main(page: ft.Page):
