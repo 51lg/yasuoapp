@@ -34,7 +34,8 @@ jobs:
 
       - name: 🚀 编译 APK
         run: |
-          flet build apk 手机叔叔解压.py --project "AutoExtractor" --org "com.shushu.extractor"
+          mv 手机叔叔解压.py main.py
+          flet build apk . --project "AutoExtractor" --org "com.shushu.extractor"
 
       - name: 📤 上传生成的 APK
         uses: actions/upload-artifact@v4
