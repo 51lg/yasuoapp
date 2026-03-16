@@ -23,10 +23,10 @@ jobs:
 
       - name: 执行 Flet 打包为 APK
         run: |
-          yes | flet build apk 手机叔叔解压.py
+          yes | flet build apk .
 
       - name: 上传 APK 文件供下载
         uses: actions/upload-artifact@v4
         with:
-          name: 手机叔叔解压-APK
+          name: 手机解压-APK
           path: build/apk/*.apk
