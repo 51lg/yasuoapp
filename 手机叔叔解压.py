@@ -125,7 +125,7 @@ async def main(page: ft.Page):
     )
 
     app_subtitle = ft.Text(
-        "扫描压缩包并自动提取密码解压",
+        "扫描 Download / QQfile_recv 并自动提取密码解压",
         size=12,
         color=TEXT_SOFT,
     )
@@ -606,22 +606,61 @@ async def main(page: ft.Page):
         update_extract_btn_state()
 
     async def scan_files(e=None):
+        """同时深度扫描 Download + QQfile_recv + Android/data 下的 QQfile_recv"""
         nonlocal last_scan_count
         file_list_view.controls.clear()
         selected_file_paths.clear()
 
-        download_dir = get_download_dir()
-        found_files = []
+        def get_scan_dirs():
+            dirs = []
 
-        if os.path.exists(download_dir):
-            for root, dirs, files in os.walk(download_dir):
-                dirs[:] = [d for d in dirs if not d.startswith(".")]
-                for f in files:
-                    lower = f.lower()
-                    if ("xxbl" in lower or lower.endswith(".xls") or lower.endswith(".zip")) and not f.startswith("."):
-                        full_path = os.path.join(root, f)
-                        if os.path.isfile(full_path):
-                            found_files.append((f, full_path, os.path.getmtime(full_path)))
+            if page.platform == ft.PagePlatform.ANDROID:
+                candidates = [
+                    "/storage/emulated/0/Download",
+                    "/storage/emulated/0/Tencent/QQfile_recv",
+                    "/storage/emulated/0/Android/data/com.tencent.mobileqq/Tencent/QQfile_recv",
+                ]
+            else:
+                home = os.path.expanduser("~")
+                candidates = [
+                    os.path.join(home, "Downloads"),
+                    os.path.join(home, "Desktop"),
+                ]
+
+            for path in candidates:
+                if os.path.exists(path) and os.path.isdir(path):
+                    dirs.append(path)
+
+            return dirs
+
+        scan_dirs = get_scan_dirs()
+        found_files = []
+        seen_paths = set()
+
+        for scan_dir in scan_dirs:
+            try:
+                for root, dirs, files in os.walk(scan_dir):
+                    dirs[:] = [d for d in dirs if not d.startswith(".")]
+
+                    for f in files:
+                        lower = f.lower()
+
+                        if (
+                            ("xxbl" in lower)
+                            or lower.endswith(".xls")
+                            or lower.endswith(".zip")
+                        ) and not f.startswith("."):
+                            full_path = os.path.join(root, f)
+
+                            if os.path.isfile(full_path) and full_path not in seen_paths:
+                                seen_paths.add(full_path)
+                                try:
+                                    mtime = os.path.getmtime(full_path)
+                                except Exception:
+                                    mtime = 0
+                                found_files.append((f, full_path, mtime))
+            except Exception:
+                pass
 
         found_files.sort(key=lambda x: x[2], reverse=True)
         last_scan_count = len(found_files)
@@ -630,13 +669,18 @@ async def main(page: ft.Page):
             file_list_view.controls.append(
                 ft.Container(
                     padding=12,
-                    content=ft.Text("没有找到可解压文件", color=TEXT_SOFT),
+                    content=ft.Text(
+                        "没有找到可解压文件\n已扫描 Download 和 QQfile_recv",
+                        color=TEXT_SOFT,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
                 )
             )
             select_all_btn.disabled = True
             set_status("扫描完成，没有找到目标文件", WARNING)
         else:
             select_all_btn.disabled = False
+
             for fname, fpath, _ in found_files:
                 card = make_click_card(
                     title=fname,
@@ -650,7 +694,10 @@ async def main(page: ft.Page):
                 card.on_click = lambda e, p=fpath, c=card: toggle_scan_file(p, c)
                 file_list_view.controls.append(card)
 
-            set_status(f"扫描完成，找到 {len(found_files)} 个文件", SUCCESS)
+            set_status(
+                f"扫描完成，已在 Download / QQfile_recv 中找到 {len(found_files)} 个文件",
+                SUCCESS,
+            )
 
         update_extract_btn_state()
 
@@ -874,7 +921,7 @@ async def main(page: ft.Page):
                 ft.Row(
                     [
                         ft.Text("扫描结果", size=16, weight=ft.FontWeight.BOLD, color=TEXT),
-                        ft.Text("自动扫描下载目录", size=12, color=TEXT_SOFT),
+                        ft.Text("自动扫描 Download / QQfile_recv", size=12, color=TEXT_SOFT),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
