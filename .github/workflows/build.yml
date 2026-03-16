@@ -1,7 +1,7 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: # 允许你手动点击按钮触发打包
+  workflow_dispatch: 
 
 jobs:
   build:
@@ -23,7 +23,7 @@ jobs:
 
       - name: 执行 Flet 打包为 APK
         run: |
-          flet build apk 手机叔叔解压.py
+          yes | flet build apk 手机叔叔解压.py
 
       - name: 上传 APK 文件供下载
         uses: actions/upload-artifact@v4
