@@ -1,0 +1,32 @@
+[project]
+name = "qq-unzipper"
+version = "0.1.0"
+description = "Android Flet app for scanning QQfile_recv and Download, then extracting QQ archives"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+  "flet==0.82.2",
+  "flet-permission-handler==0.82.2",
+  "pyzipper>=0.3.6",
+]
+
+[tool.flet]
+org = "com.mimlzm"
+product = "手机叔叔解压"
+company = "mim lzm"
+copyright = "Copyright (C) 2026 mim lzm"
+
+[tool.flet.app]
+path = "."
+module = "手机叔叔解压"
+
+[tool.flet.android]
+split_per_abi = true
+
+[tool.flet.android.permission]
+"android.permission.MANAGE_EXTERNAL_STORAGE" = true
+"android.permission.READ_EXTERNAL_STORAGE" = true
+"android.permission.WRITE_EXTERNAL_STORAGE" = true
+"android.permission.READ_MEDIA_IMAGES" = true
+"android.permission.READ_MEDIA_VIDEO" = true
+"android.permission.READ_MEDIA_AUDIO" = true
