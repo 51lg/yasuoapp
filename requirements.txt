@@ -1,2 +1,4 @@
 flet
 pyzipper
+cffi
+pycryptodomex
